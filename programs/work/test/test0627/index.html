@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech - Multi-language</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        #language-switcher button {
+            padding: 8px 12px;
+            margin: 0 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+        #speak-button {
+            font-size: 2rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            margin-top: 15px;
+        }
+        #text-to-read {
+            margin-top: 15px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            max-width: 600px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="language-switcher">
+            <button data-lang="ja">日本語</button>
+            <button data-lang="en">English</button>
+            <button data-lang="zh-CN">简体中文</button>
+            <button data-lang="zh-TW">繁體中文</button>
+            <button data-lang="ko">한국어</button>
+        </div>
+        <button id="speak-button">🔊</button>
+        <div id="text-to-read">
+            ここに読み上げたいテキストを入力します。この文章は、音声合成APIによって読み上げられるサンプルテキストです。
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
