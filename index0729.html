@@ -2,104 +2,80 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>バーコード読み取りテスト</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>バーコード＆QRコード読み取りテスト</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
-      margin: 0;
       font-family: sans-serif;
-      background: #000;
+      margin: 0; padding: 1rem;
+      background: #111;
       color: #0f0;
       text-align: center;
     }
-    video {
+    #reader {
+      margin: 0 auto;
+      max-width: 400px;
       width: 100%;
-      max-width: 600px;
-      border: 2px solid #0f0;
     }
-    #output {
-      font-size: 1.2rem;
+    #result {
       margin-top: 1rem;
+      font-size: 1.2rem;
+      word-break: break-word;
     }
   </style>
 </head>
 <body>
-  <h1>📷 バーコード読み取りテスト</h1>
-  <div id="interactive" class="viewport">
-    <video autoplay muted playsinline></video>
-  </div>
-  <div id="output">読み取り中...</div>
+  <h1>📷 バーコード＆QRコード読み取りテスト</h1>
+  <div id="reader"></div>
+  <div id="result">読み取り結果：なし</div>
 
-  <!-- QuaggaJS CDN -->
-  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
   <script>
-    async function getBackCameraDeviceId() {
-      // 初回アクセス時にはラベルが空のため、仮に getUserMedia を一度呼ぶ
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-      } catch (e) {
-        console.warn('カメラ許可が必要です');
-      }
+    const resultDiv = document.getElementById("result");
 
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === 'videoinput');
-
-      let backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back'));
-      if (!backCamera && videoDevices.length > 1) backCamera = videoDevices[1];
-      if (!backCamera && videoDevices.length > 0) backCamera = videoDevices[0];
-
-      return backCamera ? backCamera.deviceId : null;
+    function onScanSuccess(decodedText, decodedResult) {
+      // 読み取り成功時に結果表示
+      resultDiv.textContent = `読み取り成功: ${decodedText}`;
+      console.log("読み取ったコード:", decodedText);
+      // 連続読み取りも可能。必要なら停止はここで行う
+      // html5QrCode.stop();
     }
 
-    async function startBarcodeScanner() {
-      const output = document.getElementById('output');
-      const deviceId = await getBackCameraDeviceId();
+    function onScanFailure(error) {
+      // 読み取り失敗時はここに来る（無視してOK）
+      // console.warn(`読み取り失敗: ${error}`);
+    }
 
-      if (!deviceId) {
-        output.textContent = 'カメラが見つかりませんでした';
-        return;
-      }
+    const html5QrCode = new Html5Qrcode("reader");
 
-      Quagga.init({
-        inputStream: {
-          type: 'LiveStream',
-          constraints: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            deviceId: deviceId,
-            facingMode: 'environment',
-          },
-          target: document.querySelector('#interactive'), // video要素の親
-        },
-        decoder: {
-          readers: [
-            'ean_reader',      // JAN/EANコード
-            'ean_8_reader',
-            'code_128_reader', // 一般的なバーコード
-            'upc_reader',
-            'upc_e_reader'
-          ],
-        },
-        locate: true
-      }, function (err) {
-        if (err) {
-          console.error(err);
-          output.textContent = 'Quaggaの初期化エラー';
-          return;
+    Html5Qrcode.getCameras()
+      .then(devices => {
+        if (devices && devices.length) {
+          const cameraId = devices[0].id;
+          html5QrCode.start(
+            cameraId,
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.QR_CODE, // QRコードも含む
+              ],
+            },
+            onScanSuccess,
+            onScanFailure
+          );
+        } else {
+          resultDiv.textContent = "カメラが見つかりませんでした。";
         }
-        Quagga.start();
-        output.textContent = 'バーコードを読み取ってください';
+      })
+      .catch(err => {
+        resultDiv.textContent = `カメラ取得エラー: ${err}`;
       });
-
-      Quagga.onDetected(function (result) {
-        const code = result.codeResult.code;
-        output.textContent = `読み取り成功: ${code}`;
-        console.log('検出されたコード:', code);
-        // Quagga.stop(); // 一度で止めたい場合はコメントアウト解除
-      });
-    }
-
-    startBarcodeScanner();
   </script>
 </body>
 </html>
