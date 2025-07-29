@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カメラテスト（背面カメラ優先）</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    video {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      border: 2px solid #fff;
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay muted playsinline></video>
+  <p id="status">カメラを起動中...</p>
+
+  <script>
+    async function startCamera(videoElement) {
+      const status = document.getElementById('status');
+
+      try {
+        // 先にカメラ許可を促すため getUserMedia を1回呼ぶ（iOSでlabel取得のため）
+        await navigator.mediaDevices.getUserMedia({ video: true });
+
+        // デバイス一覧取得
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+        if (videoDevices.length === 0) {
+          status.textContent = 'カメラが見つかりませんでした';
+          return;
+        }
+
+        // "back"を含むカメラ名を優先
+        let selectedDeviceId = null;
+        for (const device of videoDevices) {
+          if (device.label.toLowerCase().includes('back')) {
+            selectedDeviceId = device.deviceId;
+            break;
+          }
+        }
+
+        // 見つからなければ2台目、それもなければ1台目
+        if (!selectedDeviceId && videoDevices.length > 1) {
+          selectedDeviceId = videoDevices[1].deviceId;
+        }
+        if (!selectedDeviceId) {
+          selectedDeviceId = videoDevices[0].deviceId;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: selectedDeviceId },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+
+        videoElement.srcObject = stream;
+        videoElement.onloadedmetadata = () => {
+          videoElement.play();
+          status.textContent = 'カメラ起動中（背面カメラを優先）';
+        };
+
+      } catch (err) {
+        console.error('カメラ起動エラー:', err);
+        status.textContent = 'カメラの起動に失敗しました';
+      }
+    }
+
+    const video = document.getElementById('video');
+    startCamera(video);
+  </script>
+</body>
+</html>
